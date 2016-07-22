@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
+	xsi:schemaLocation="
+           http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.3.xsd
+       ">
+
+	<bean id="dataSource" class="org.springframework.jdbc.datasource.SimpleDriverDataSource">
+		<property name="driverClass" value="oracle.jdbc.driver.OracleDriver" />
+		<property name="url" value="jdbc:oracle:thin:@192.168.56.101:1521:CHRIS" />
+		<property name="username" value="CHRIS" />
+		<property name="password" value="Oracle3304" />
+	</bean>
+
+	<bean id="userDao" class="com.chris.user.service.impl.UserDaoJdbc">
+		<property name="dataSource" ref="dataSource" />
+	</bean> 
+
+	<!-- Start : 6.3.1 // 리스트6-15 코드 
+	<bean id="userService" class="com.chris.user.service.impl.UserServiceTx">
+		<property name="transactionManager" ref="transactionManager"/>
+		<property name="userService" ref="userServiceImpl"/>
+	</bean>
+	End : 6.3.1 // 리스트6-15 코드 -->
+	
+	<!-- Start : 6.3.4 // 리스트6-36 코드
+	<bean id="userService" class="com.chris.factory.TxProxyFactoryBean">
+		<property name="target" ref="userServiceImpl" />
+		<property name="transactionManager" ref="transactionManager" />
+		<property name="pattern" value="upgradeLevels" />
+		<property name="serviceInterface" value="com.chris.user.service.UserService" />
+	</bean>
+	End : 6.3.4 // 리스트6-36 코드 -->
+	
+	<!-- Start : 6.4.2 // 리스트6-47 코드 -->
+	<bean id="userService" class="org.springframework.aop.framework.ProxyFactoryBean">
+		<property name="target" ref="userServiceImpl" />
+		<property name="interceptorNames">
+			<list>
+				<value>transactionAdvisor</value>
+			</list>
+		</property>
+	</bean>
+	<!--  End : 6.4.2 // 리스트6-47 코드 -->
+	
+	<bean id="userServiceImpl" class="com.chris.user.service.impl.UserServiceImpl">
+		<property name="userDao" ref="userDao" />
+		<property name="mailSender" ref="mailSender" />
+	</bean>
+
+	<bean id="mailSender" class="com.chris.user.service.impl.DummyMailSender" />
+
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource" />  
+	</bean>
+	
+	<bean id="transactionAdvice" class="com.chris.advice.TransactionAdvice">
+		<property name="transactionManager" ref="transactionManager" />
+	</bean>
+	
+	<bean id="transactionPointcut" class="org.springframework.aop.support.NameMatchMethodPointcut">
+		<property name="mappedName" value="upgrade*" />
+	</bean>
+	
+	<bean id="transactionAdvisor" class="org.springframework.aop.support.DefaultPointcutAdvisor">
+		<property name="advice" ref="transactionAdvice" />
+		<property name="pointcut" ref="transactionPointcut" />
+	</bean>
+
+</beans>
